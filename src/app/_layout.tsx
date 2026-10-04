@@ -15,6 +15,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { setupNotifications, startNotificationService } from '../lib/notifications';
 import { getState, hydrate, useHydrated } from '../lib/store';
 import { loadVoices } from '../lib/voice';
+import { startWakeService } from '../lib/wake';
 import { colors } from '../theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -47,7 +48,11 @@ export default function RootLayout() {
       .finally(() => {
         stop = startNotificationService();
       });
-    return () => stop();
+    const stopWake = startWakeService();
+    return () => {
+      stop();
+      stopWake();
+    };
   }, [hydrated]);
 
   const ready = fontsLoaded && hydrated;

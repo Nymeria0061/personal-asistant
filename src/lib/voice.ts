@@ -9,7 +9,7 @@ type SRModule = typeof import('expo-speech-recognition').ExpoSpeechRecognitionMo
 // Konuşma tanıma yerel bir modül gerektirir: Expo Go'da yoktur, development build'de vardır.
 // Modül yoksa uygulama çökmesin diye tembel ve korumalı yüklenir.
 let recognizer: SRModule | null | undefined;
-function getRecognizer(): SRModule | null {
+export function getRecognizer(): SRModule | null {
   if (recognizer !== undefined) return recognizer;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -18,6 +18,31 @@ function getRecognizer(): SRModule | null {
     recognizer = null;
   }
   return recognizer;
+}
+
+// Mikrofonu aynı anda iki dinleyici kullanır: uyandırma kelimesi servisi ('wake') ve asistan
+// ekranındaki komut dinleme ('command'). Olaylar ortak olduğu için her dinleyici yalnızca
+// mikrofon kendisindeyken tepki verir.
+export type MicOwner = 'wake' | 'command' | null;
+let owner: MicOwner = null;
+export const micOwner = () => owner;
+export function claimMic(o: MicOwner) {
+  owner = o;
+}
+
+// Asistan konuşurken uyandırma dinlemesi durur (kendi sesini duymasın diye).
+let speaking = false;
+let speakToken = 0;
+const speakingListeners = new Set<(speaking: boolean) => void>();
+export const isSpeaking = () => speaking;
+export function subscribeSpeaking(fn: (speaking: boolean) => void): () => void {
+  speakingListeners.add(fn);
+  return () => speakingListeners.delete(fn);
+}
+function setSpeaking(v: boolean) {
+  if (speaking === v) return;
+  speaking = v;
+  speakingListeners.forEach((fn) => fn(v));
 }
 
 export function isRecognitionAvailable(): boolean {
@@ -55,19 +80,27 @@ export function speak(text: string, onDone?: () => void, override?: { voiceId?: 
   const { settings } = getState();
   const choice = chooseVoice(voices, settings.voiceGender, override?.voiceId !== undefined ? override.voiceId : settings.voiceId);
   Speech.stop();
+  const token = ++speakToken;
+  const done = () => {
+    if (token === speakToken) setSpeaking(false);
+    onDone?.();
+  };
+  setSpeaking(true);
   Speech.speak(clean, {
     language: 'tr-TR',
     voice: choice.identifier,
     rate: settings.speechRate,
     pitch: choice.pitch,
-    onDone,
-    onStopped: onDone,
-    onError: onDone,
+    onDone: done,
+    onStopped: done,
+    onError: done,
   });
 }
 
 export function stopSpeaking() {
+  speakToken++;
   Speech.stop();
+  setSpeaking(false);
 }
 
 export type ListenStatus = 'idle' | 'listening' | 'unavailable' | 'denied' | 'error';
@@ -90,22 +123,28 @@ export function useSpeechRecognition(onFinal: (text: string) => void) {
     if (!r) return;
     const subs = [
       r.addListener('start', () => {
+        if (owner !== 'command') return;
         finalRef.current = '';
         setTranscript('');
         setStatus('listening');
       }),
       r.addListener('result', (e) => {
+        if (owner !== 'command') return;
         const text = e.results[0]?.transcript ?? '';
         setTranscript(text);
         if (e.isFinal) finalRef.current = text;
       }),
       r.addListener('volumechange', (e) => {
+        if (owner !== 'command') return;
         setVolume(Math.max(0, Math.min(1, (e.value + 2) / 12)));
       }),
       r.addListener('error', (e) => {
+        if (owner !== 'command') return;
         setStatus(e.error === 'not-allowed' ? 'denied' : e.error === 'no-speech' ? 'idle' : 'error');
       }),
       r.addListener('end', () => {
+        if (owner !== 'command') return;
+        claimMic(null);
         setVolume(0);
         setStatus((s) => (s === 'listening' ? 'idle' : s));
         const text = finalRef.current.trim();
@@ -129,6 +168,13 @@ export function useSpeechRecognition(onFinal: (text: string) => void) {
       return;
     }
     setTranscript('');
+    const fromWake = owner === 'wake';
+    claimMic('command');
+    if (fromWake) {
+      // uyandırma dinlemesi hâlâ açıksa önce kapat
+      r.abort();
+      await new Promise((res) => setTimeout(res, 250));
+    }
     r.start({
       lang: 'tr-TR',
       interimResults: true,
@@ -139,7 +185,7 @@ export function useSpeechRecognition(onFinal: (text: string) => void) {
   }, []);
 
   const stop = useCallback(() => {
-    getRecognizer()?.stop();
+    if (owner === 'command') getRecognizer()?.stop();
   }, []);
 
   return { status, transcript, volume, start, stop, listening: status === 'listening' };

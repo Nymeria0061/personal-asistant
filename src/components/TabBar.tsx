@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
+import { useWakeStatus } from '../lib/wake';
 import { colors, gradients } from '../theme';
 import { Txt } from './ui';
 
@@ -18,6 +19,7 @@ const ICONS: Record<string, [keyof typeof Ionicons.glyphMap, keyof typeof Ionico
 
 /** Ortasında sesli asistan düğmesi olan yüzen cam sekme çubuğu. */
 export function TabBar({ state, navigation, insets }: BottomTabBarProps) {
+  const wake = useWakeStatus();
   const tabs = state.routes.map((route, index) => {
     const focused = state.index === index;
     const [on, off, label] = ICONS[route.name] ?? ['ellipse', 'ellipse-outline', route.name];
@@ -51,7 +53,12 @@ export function TabBar({ state, navigation, insets }: BottomTabBarProps) {
       }}
       style={({ pressed }) => [styles.micWrap, { transform: [{ scale: pressed ? 0.92 : 1 }] }]}
     >
-      <LinearGradient colors={gradients.orb} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.mic}>
+      <LinearGradient
+        colors={gradients.orb}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.mic, wake === 'listening' && styles.micWake]}
+      >
         <Ionicons name="mic" size={26} color="#fff" />
       </LinearGradient>
     </Pressable>
@@ -107,4 +114,6 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.25)',
   },
+  // uyandırma kelimesi dinlenirken yeşil halka
+  micWake: { borderColor: colors.mint },
 });

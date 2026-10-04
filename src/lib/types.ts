@@ -44,6 +44,9 @@ export interface Settings {
   voiceGender: VoiceGender;
   /** Kullanıcının listeden seçtiği belirli ses; null → cinsiyete göre otomatik */
   voiceId: string | null;
+  /** "Asistan" deyince uyanıp "Efendim" desin (uygulama açıkken) */
+  wakeWord: boolean;
+  wakePhrase: string;
 }
 
 export interface AppState {
@@ -67,4 +70,6 @@ export const DEFAULT_SETTINGS: Settings = {
   speechRate: 1,
   voiceGender: 'auto',
   voiceId: null,
+  wakeWord: false,
+  wakePhrase: 'Asistan',
 };

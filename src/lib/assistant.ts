@@ -17,7 +17,7 @@ export const SUGGESTIONS = [
 export const HELP_TEXT =
   'Bana doğal konuşarak görev ekleyebilirsin: "yarın 9\'da ilaç içmeyi hatırlat", "her pazartesi 10\'da toplantı", ' +
   '"yarım saat sonra fırını kapat". "Bugün ne var?" diye sorabilir, "not al ..." diyerek not bırakabilir, ' +
-  '"süt al bitti" diyerek bir görevi tamamlayabilirsin.';
+  '"süt al bitti" diyerek bir görevi tamamlayabilirsin. Ayarlardan "Seslenince uyan"ı açarsan "Asistan" demen yeterli, "Efendim" diye cevap veririm.';
 
 function describeWhen(t: Pick<Task, 'date' | 'time' | 'repeat'>): string {
   if (t.repeat !== 'none') {

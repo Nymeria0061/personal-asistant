@@ -74,3 +74,15 @@ test('matchScore', () => {
   assert.ok(matchScore('ilacımı', 'İlaç iç') >= 1);
   assert.equal(matchScore('market', 'Annemi ara'), 0);
 });
+
+test('findWakePhrase', async () => {
+  const { findWakePhrase } = await import('../src/lib/parser.ts');
+  assert.deepEqual(findWakePhrase('Asistan', 'asistan'), { remainder: '' });
+  assert.deepEqual(findWakePhrase('hey asistanım', 'asistan'), { remainder: '' });
+  assert.deepEqual(findWakePhrase('Asistan bugün ne var', 'asistan'), { remainder: 'bugün ne var' });
+  assert.deepEqual(findWakePhrase('tamam Lara yarın 9da ilaç', 'Lara'), { remainder: 'yarın 9da ilaç' });
+  assert.deepEqual(findWakePhrase('hey Siri', 'asistan'), null);
+  assert.deepEqual(findWakePhrase('asistanlık işleri', 'asistan'), { remainder: 'işleri' });
+  assert.equal(findWakePhrase('larangeli', 'lara')?.remainder, '');
+  assert.equal(findWakePhrase('klara', 'lara'), null);
+});

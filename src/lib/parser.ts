@@ -372,3 +372,20 @@ export function matchScore(query: string, title: string): number {
   for (const w of words(query)) if (t.some((x) => similar(w, x))) score++;
   return score;
 }
+
+/**
+ * Uyandırma kelimesini ("asistan", "hey asistan", "asistanım…") arar.
+ * Bulursa kelimeden sonra söylenenleri döner: "asistan bugün ne var" → "bugün ne var".
+ */
+export function findWakePhrase(transcript: string, phrase: string): { remainder: string } | null {
+  const words = normalize(phrase)
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (!words.length) return null;
+  const text = normalize(transcript);
+  const pattern = words.map((w) => `${w}${L}*`).join('\\s+');
+  const m = text.match(new RegExp(`(?:^|\\s)(?:hey\\s+|hi\\s+|ey\\s+)?${pattern}${END}`));
+  if (!m || m.index === undefined) return null;
+  return { remainder: text.slice(m.index + m[0].length).replace(/^[\s.:'-]+/, '').trim() };
+}

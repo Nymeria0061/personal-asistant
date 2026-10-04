@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,34 +12,64 @@ import { VoiceOrb, type OrbMode } from '../components/VoiceOrb';
 import { respond, SUGGESTIONS } from '../lib/assistant';
 import { clearChat, getState, useAppState } from '../lib/store';
 import { speak, stopSpeaking, useSpeechRecognition } from '../lib/voice';
+import { pauseWake, resumeWake } from '../lib/wake';
 import { colors, fonts, gradients, radius, webNoOutline } from '../theme';
 
 export default function AssistantScreen() {
   const insets = useSafeAreaInsets();
   const { chat, settings } = useAppState();
-  const [speaking, setSpeaking] = useState(false);
+  // Uyandırma kelimesiyle açıldıysa: wake=1 → "Efendim" de ve dinle; q → komutu doğrudan yanıtla
+  const params = useLocalSearchParams<{ wake?: string; q?: string }>();
+  const viaWake = !!params.wake || !!params.q;
+  const [speaking, setSpeaking] = useState(viaWake);
+  const [greeting, setGreeting] = useState(!!params.wake);
   const [text, setText] = useState('');
   const scrollRef = useRef<ScrollView>(null);
 
-  const handle = useCallback((input: string) => {
-    const reply = respond(input, { speak: false });
-    if (reply && getState().settings.voiceReply) {
-      setSpeaking(true);
-      speak(reply, () => setSpeaking(false));
-    }
-  }, []);
+  const handle = useCallback(
+    (input: string) => {
+      const reply = respond(input, { speak: false });
+      // Eller serbest kullanımda yanıt her zaman sesli okunur
+      if (reply && (viaWake || getState().settings.voiceReply)) {
+        setSpeaking(true);
+        speak(reply, () => setSpeaking(false));
+      }
+    },
+    [viaWake],
+  );
 
   const sr = useSpeechRecognition(handle);
 
-  // Açılışta otomatik dinlemeye başla
+  // Açılış: uyandırma dinlemesini durdur (mikrofonu bu ekran kullanır), sonra duruma göre başla
   useEffect(() => {
-    if (settings.autoListen && sr.status === 'idle') {
-      const t = setTimeout(() => sr.start(), 350);
-      return () => clearTimeout(t);
+    pauseWake();
+    let t: ReturnType<typeof setTimeout> | undefined;
+    if (params.q) {
+      const q = params.q;
+      t = setTimeout(() => handle(q), 50);
+    } else if (params.wake) {
+      speak('Efendim', () => {
+        setSpeaking(false);
+        setGreeting(false);
+        t = setTimeout(() => sr.start(), 150);
+      });
+    } else if (settings.autoListen && sr.status === 'idle') {
+      t = setTimeout(() => sr.start(), 350);
     }
+    return () => {
+      clearTimeout(t);
+      resumeWake();
+    };
     // yalnızca ilk açılışta
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Uyandırmayla açıldıysa iş bitince kendiliğinden kapan ve yeniden "Asistan" demeni bekle
+  useEffect(() => {
+    if (!viaWake || speaking || sr.listening) return;
+    const t = setTimeout(() => router.canGoBack() && router.back(), 6000);
+    return () => clearTimeout(t);
+  }, [viaWake, speaking, sr.listening, chat.length, text]);
 
   useEffect(() => () => stopSpeaking(), []);
 
@@ -71,7 +101,9 @@ export default function AssistantScreen() {
   const status = sr.listening
     ? sr.transcript || 'Dinliyorum…'
     : speaking
-      ? 'Konuşuyorum…'
+      ? greeting
+        ? 'Efendim?'
+        : 'Konuşuyorum…'
       : sr.status === 'unavailable'
         ? 'Yaz ya da klavyedeki 🎤 ile söyle'
         : sr.status === 'denied'

@@ -17,6 +17,7 @@ Günlük yapman ve unutmaman gereken her şeyi not alan, zamanı gelince hatırl
   - "Bugün ne var?" / "Yarın neler var?" / "Bu hafta planım ne?"
   - "Not al: wifi şifresi kapının arkasında" / "Notlarımı oku"
   - "Süt al bitti" (görevi tamamlar) / "Sil market" (görevi siler)
+- **"Asistan" de, "Efendim" desin.** Ayarlar → Ses → *Seslenince uyan* açıkken uygulama seni dinler. "Asistan" dediğinde "Efendim" der ve komutunu bekler; "Asistan, bugün ne var?" gibi tek seferde de söyleyebilirsin. Uyandırma kelimesini değiştirebilirsin. Bu özellik uygulama açıkken (ekran açık) çalışır; dinleme sırasında alttaki mikrofon düğmesinin çevresi yeşil yanar.
 - **Kadın ya da erkek ses.** Ayarlar → Ses → *Asistan sesi* bölümünden 👩 Kadın, 👨 Erkek veya Otomatik seçebilir; telefonundaki Türkçe sesleri tek tek dinleyip istediğini seçebilirsin.
 - **Gerçek hatırlatmalar.** Telefonun yerel bildirimleri kullanılır, bu yüzden uygulama kapalıyken de bildirim gelir. Bildirimin üzerindeki **✅ Tamamlandı** ve **⏰ 10 dk ertele** düğmeleri çalışır. İstersen 5, 15, 30 dk veya 1 saat önceden hatırlatır.
 - **Sabah özeti.** Her sabah seçtiğin saatte günün planını bildirim olarak gönderir.
