@@ -1,0 +1,72 @@
+name: Android APK
+
+# Her push'ta Android APK'sını derler ve "android-latest" sürümüne (Releases) yükler.
+# Telefondan: GitHub → Releases → "Asistanım – Android" → Asistanim.apk
+on:
+  push:
+    branches: ['**']
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Bağımlılıklar
+        run: npm ci
+
+      - name: Kontroller
+        run: |
+          npm test
+          npm run typecheck
+
+      - name: Android projesini üret
+        run: npx expo prebuild --platform android --no-install
+
+      - name: APK derle
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+
+      - name: APK'yı adlandır
+        run: cp android/app/build/outputs/apk/release/app-release.apk Asistanim.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Asistanim-apk
+          path: Asistanim.apk
+
+      - name: Releases sayfasına yükle
+        if: github.ref_name == github.event.repository.default_branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-latest --cleanup-tag --yes || true
+          gh release create android-latest Asistanim.apk \
+            --target "$GITHUB_SHA" \
+            --title "Asistanım – Android (son sürüm)" \
+            --latest \
+            --notes "Telefonunda bu sayfayı aç, **Asistanim.apk** dosyasına dokunarak indir ve kur. Kurulumda 'bilinmeyen kaynaklardan yükleme' izni istenirse tarayıcına izin ver.
+
+          Commit: ${GITHUB_SHA::7}"

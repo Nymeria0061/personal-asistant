@@ -19,12 +19,16 @@ const CATEGORY_ID = 'reminder';
 const PREFIX_TASK = 'task:';
 const PREFIX_SUMMARY = 'summary:';
 
-export const supported = Platform.OS !== 'web';
+const native = Platform.OS !== 'web';
+const webApi = () => !native && typeof window !== 'undefined' && 'Notification' in window;
+
+/** Telefonda yerel bildirimler; bilgisayarda (web) sekme açıkken tarayıcı bildirimleri. */
+export const supported = native || webApi();
 
 export type ReminderData = { kind: 'task'; taskId: string; date: string } | { kind: 'summary' };
 
 export async function setupNotifications() {
-  if (!supported) return;
+  if (!native) return;
 
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -54,12 +58,14 @@ export async function setupNotifications() {
 
 export async function getPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined' | 'unsupported'> {
   if (!supported) return 'unsupported';
+  if (!native) return window.Notification.permission === 'default' ? 'undetermined' : window.Notification.permission;
   const { status } = await Notifications.getPermissionsAsync();
   return status;
 }
 
 export async function requestPermission(): Promise<boolean> {
   if (!supported) return false;
+  if (!native) return (await window.Notification.requestPermission()) === 'granted';
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
   const { granted } = await Notifications.requestPermissionsAsync({
@@ -84,7 +90,7 @@ function summaryBody(state: AppState, date: string): string | null {
  * önümüzdeki günlerin her gerçekleşmesi ayrı planlanır; böylece tamamlanan bir gün sessiz kalır.
  */
 export async function rescheduleAll(state: AppState = getState()) {
-  if (!supported) return;
+  if (!native) return;
   const { granted } = await Notifications.getPermissionsAsync();
   if (!granted) return;
 
@@ -174,6 +180,10 @@ export async function handleResponse(response: Notifications.NotificationRespons
 
 export async function sendTestNotification() {
   if (!supported) return;
+  if (!native) {
+    setTimeout(() => showWebNotification('✨ Asistanın burada', 'Bildirimler çalışıyor. Bu sekme açık kaldıkça hatırlatmalarını göndereceğim.'), 3000);
+    return;
+  }
   await Notifications.scheduleNotificationAsync({
     content: {
       title: '✨ Asistanın burada',
@@ -190,7 +200,7 @@ export async function sendTestNotification() {
  * Temizleme fonksiyonu döner.
  */
 export function startNotificationService(): () => void {
-  if (!supported) return () => {};
+  if (!native) return supported ? startWebReminders() : () => {};
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   let last: AppState | null = null;
@@ -227,4 +237,81 @@ export function startNotificationService(): () => void {
 
 export function stripEmoji(s: string): string {
   return s.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').trim();
+}
+
+// ---------- Web (bilgisayar) ----------
+// Tarayıcıda zamanlanmış bildirim API'si yok; sekme açıkken dakikada birkaç kez kontrol edip
+// zamanı gelen hatırlatmaları gösteririz. Gösterilenler tekrar gösterilmesin diye saklanır.
+
+const FIRED_KEY = 'asistan/fired';
+const LATE_WINDOW_MS = 10 * 60000;
+
+function loadFired(): string[] {
+  try {
+    return JSON.parse(window.localStorage.getItem(FIRED_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+}
+
+function markFired(key: string) {
+  try {
+    window.localStorage.setItem(FIRED_KEY, JSON.stringify([...loadFired(), key].slice(-300)));
+  } catch {
+    // depolama kapalıysa yalnızca bu oturumda tekrar gösterebiliriz
+  }
+}
+
+function showWebNotification(title: string, body: string) {
+  if (window.Notification.permission !== 'granted') return;
+  try {
+    const n = new window.Notification(title, { body, tag: title });
+    n.onclick = () => {
+      window.focus();
+      n.close();
+    };
+  } catch {
+    // bazı tarayıcılar yalnızca service worker üzerinden bildirime izin verir
+  }
+  if (getState().settings.speakReminders) speak(`${stripEmoji(title)}. ${stripEmoji(body)}`);
+}
+
+function checkWebReminders() {
+  const state = getState();
+  const now = new Date();
+  const fired = new Set(loadFired());
+
+  for (const occ of upcomingOccurrences(state, new Date(now.getTime() - LATE_WINDOW_MS - 3600e3), 2)) {
+    const before = occ.task.remindBefore ?? state.settings.remindBefore;
+    const fireAt = occ.at.getTime() - before * 60000;
+    const key = `${PREFIX_TASK}${occ.task.id}:${occ.date}`;
+    if (fireAt > now.getTime() || now.getTime() - fireAt > LATE_WINDOW_MS || fired.has(key)) continue;
+    markFired(key);
+    const cat = CATEGORY_MAP[occ.task.category];
+    const when = before ? `${before} dk sonra · ${occ.task.time}` : withLocative(occ.task.time);
+    showWebNotification(`${cat?.emoji ?? '⏰'} ${occ.task.title}`, occ.task.note ? `${when} — ${occ.task.note}` : `Hatırlatma: ${when}`);
+  }
+
+  if (state.settings.dailySummary) {
+    const today = toISODate(now);
+    const key = `${PREFIX_SUMMARY}${today}`;
+    const [h, m] = state.settings.summaryTime.split(':').map(Number);
+    const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m).getTime();
+    if (now.getTime() >= at && now.getTime() - at < 2 * 3600e3 && !fired.has(key)) {
+      markFired(key);
+      const body = summaryBody(state, today);
+      if (body) showWebNotification(`☀️ ${state.settings.name ? `Günaydın ${state.settings.name}` : 'Günün planı hazır'}`, body);
+    }
+  }
+}
+
+function startWebReminders(): () => void {
+  checkWebReminders();
+  const id = setInterval(checkWebReminders, 20000);
+  const onVisible = () => document.visibilityState === 'visible' && checkWebReminders();
+  document.addEventListener('visibilitychange', onVisible);
+  return () => {
+    clearInterval(id);
+    document.removeEventListener('visibilitychange', onVisible);
+  };
 }

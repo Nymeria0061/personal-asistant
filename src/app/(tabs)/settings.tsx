@@ -167,11 +167,13 @@ export default function SettingsScreen() {
 function permLabel(p: string) {
   switch (p) {
     case 'granted':
-      return 'Açık — hatırlatmalar uygulama kapalıyken de gelir';
+      return Platform.OS === 'web'
+        ? 'Açık — bu sekme açık kaldıkça hatırlatmalar gelir'
+        : 'Açık — hatırlatmalar uygulama kapalıyken de gelir';
     case 'denied':
       return 'Kapalı — telefon ayarlarından açman gerekiyor';
     case 'unsupported':
-      return 'Web önizlemede bildirim yok; telefonda çalışır';
+      return 'Bu tarayıcı bildirimleri desteklemiyor';
     default:
       return 'Hatırlatmalar için izin gerekli';
   }

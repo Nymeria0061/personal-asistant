@@ -9,6 +9,7 @@ import {
 import { DarkTheme, ThemeProvider, Stack, SplashScreen, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { setupNotifications, startNotificationService } from '../lib/notifications';
@@ -61,12 +62,17 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider value={theme}>
         <StatusBar style="light" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="assistant" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-          <Stack.Screen name="task" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-          <Stack.Screen name="welcome" options={{ presentation: 'fullScreenModal', animation: 'fade', gestureEnabled: false }} />
-        </Stack>
+        {/* Bilgisayarda (web) uygulama ortada telefon genişliğinde bir sütun olarak görünür */}
+        <View style={{ flex: 1, backgroundColor: colors.bg }}>
+          <View style={Platform.OS === 'web' ? { flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center' } : { flex: 1 }}>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="assistant" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+              <Stack.Screen name="task" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+              <Stack.Screen name="welcome" options={{ presentation: 'fullScreenModal', animation: 'fade', gestureEnabled: false }} />
+            </Stack>
+          </View>
+        </View>
       </ThemeProvider>
     </SafeAreaProvider>
   );

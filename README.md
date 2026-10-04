@@ -26,6 +26,25 @@ Günlük yapman ve unutmaman gereken her şeyi not alan, zamanı gelince hatırl
 
 Tüm veriler **yalnızca telefonunda** saklanır. Hesap ya da sunucu gerekmez.
 
+## İndir ve dene
+
+### 📱 Android telefon
+1. Telefonunda tarayıcıdan GitHub'a giriş yap (depo gizli olduğu için gerekli).
+2. Depo sayfasında **Releases → "Asistanım – Android (son sürüm)"** bölümüne gir.
+3. **Asistanim.apk** dosyasına dokunup indir, ardından aç ve kur. Telefon "bilinmeyen kaynaklardan yükleme" izni isterse tarayıcına izin ver.
+
+APK'yı GitHub Actions her push'ta otomatik olarak yeniden derler (`.github/workflows/android-apk.yml`). Yeni sürümü kurmak için aynı adımları tekrarlaman yeterli; verilerin silinmez.
+
+### 💻 Bilgisayar (tarayıcı)
+Web sürümü GitHub Pages'e otomatik olarak yayınlanır (`.github/workflows/web.yml`), ancak GitHub'ın ücretsiz planında Pages **yalnızca herkese açık depolarda** çalışır:
+1. **Settings → General → Danger Zone → Change visibility → Public** (yalnızca kod açılır; görevlerin ve notların telefonunda/tarayıcında kalır).
+2. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+3. **Actions → "Web (GitHub Pages)" → Run workflow**. Adres `https://nymeria0061.github.io/personal-asistant/` olur.
+
+Depoyu gizli tutmak istersen bilgisayarda yerel olarak da çalıştırabilirsin: `npm install` ve ardından `npx expo start --web`.
+
+Bilgisayarda hatırlatmalar tarayıcı bildirimi olarak gelir, ama **yalnızca sekme açıkken** çalışır. Sesli komut Chrome ve Edge'de çalışır. Telefon ile bilgisayar arasında veri eşitlemesi yoktur; her cihaz kendi listesini tutar.
+
 ## Hızlı başlangıç
 
 ```bash
