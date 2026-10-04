@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "Asistanım",
+    "slug": "personal-asistant",
+    "scheme": "asistanim",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#07051A",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.asistanim.app"
+    },
+    "android": {
+      "package": "com.asistanim.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#07051A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "backgroundColor": "#07051A"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#7C5CFF"
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Sesli komutlarını duyabilmem için mikrofona erişmem gerekiyor.",
+          "speechRecognitionPermission": "Söylediklerini yazıya çevirip görev ve not olarak kaydedebilmem için konuşma tanıma izni gerekiyor."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
