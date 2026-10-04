@@ -1,4 +1,5 @@
 import type { Repeat } from './parser';
+import type { VoiceGender } from './voices';
 
 export type CategoryId = 'personal' | 'work' | 'health' | 'shopping' | 'home' | 'social';
 
@@ -40,6 +41,9 @@ export interface Settings {
   speakReminders: boolean;
   autoListen: boolean;
   speechRate: number;
+  voiceGender: VoiceGender;
+  /** Kullanıcının listeden seçtiği belirli ses; null → cinsiyete göre otomatik */
+  voiceId: string | null;
 }
 
 export interface AppState {
@@ -61,4 +65,6 @@ export const DEFAULT_SETTINGS: Settings = {
   speakReminders: true,
   autoListen: true,
   speechRate: 1,
+  voiceGender: 'auto',
+  voiceId: null,
 };

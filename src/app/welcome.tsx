@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Aurora } from '../components/Aurora';
 import { GradientButton, Txt } from '../components/ui';
 import { VoiceOrb } from '../components/VoiceOrb';
+import { VoicePicker } from '../components/VoicePicker';
 import { requestPermission } from '../lib/notifications';
 import { getState, updateSettings } from '../lib/store';
 import { speak } from '../lib/voice';
@@ -68,6 +69,12 @@ export default function Welcome() {
             style={styles.input}
             returnKeyType="done"
           />
+          <View style={{ alignItems: 'center', gap: 8 }}>
+            <Txt size={13} color={colors.textMuted}>
+              Asistanının sesi
+            </Txt>
+            <VoicePicker showList={false} />
+          </View>
           <GradientButton label="Başlayalım" icon={<Ionicons name="sparkles" size={18} color="#fff" />} onPress={start} />
         </View>
       </View>

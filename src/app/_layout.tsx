@@ -14,6 +14,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { setupNotifications, startNotificationService } from '../lib/notifications';
 import { getState, hydrate, useHydrated } from '../lib/store';
+import { loadVoices } from '../lib/voice';
 import { colors } from '../theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -35,6 +36,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     hydrate();
+    loadVoices();
   }, []);
 
   useEffect(() => {

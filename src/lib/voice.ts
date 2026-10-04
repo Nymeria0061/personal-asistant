@@ -2,6 +2,7 @@ import * as Speech from 'expo-speech';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getState } from './store';
+import { chooseVoice, isTurkish, type VoiceInfo } from './voices';
 
 type SRModule = typeof import('expo-speech-recognition').ExpoSpeechRecognitionModule;
 
@@ -29,18 +30,36 @@ export function isRecognitionAvailable(): boolean {
   }
 }
 
-export function speak(text: string, onDone?: () => void) {
+let voices: VoiceInfo[] = [];
+
+/** Cihazdaki sesleri bir kez yükler (web'de sesler gecikmeli gelir, tekrar denenir). */
+export async function loadVoices(): Promise<VoiceInfo[]> {
+  for (let i = 0; i < 3 && !voices.length; i++) {
+    try {
+      voices = await Speech.getAvailableVoicesAsync();
+    } catch {
+      voices = [];
+    }
+    if (!voices.length) await new Promise((r) => setTimeout(r, 700));
+  }
+  return voices.filter(isTurkish);
+}
+
+export function speak(text: string, onDone?: () => void, override?: { voiceId?: string | null }) {
   const clean = text
     .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '')
     .replace(/[“”"]/g, '')
     .replace(/•/g, ',')
     .trim();
   if (!clean) return;
+  const { settings } = getState();
+  const choice = chooseVoice(voices, settings.voiceGender, override?.voiceId !== undefined ? override.voiceId : settings.voiceId);
   Speech.stop();
   Speech.speak(clean, {
     language: 'tr-TR',
-    rate: getState().settings.speechRate,
-    pitch: 1.05,
+    voice: choice.identifier,
+    rate: settings.speechRate,
+    pitch: choice.pitch,
     onDone,
     onStopped: onDone,
     onError: onDone,

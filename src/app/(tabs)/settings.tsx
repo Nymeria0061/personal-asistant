@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Aurora } from '../../components/Aurora';
 import { PickerField } from '../../components/PickerField';
+import { VoicePicker } from '../../components/VoicePicker';
 import { Chip, Glass, GradientButton, SectionTitle, Txt } from '../../components/ui';
 import { getPermissionStatus, requestPermission, sendTestNotification, supported } from '../../lib/notifications';
 import { resetAll, updateSettings, useAppState } from '../../lib/store';
@@ -112,6 +113,11 @@ export default function SettingsScreen() {
           <Row icon="mic-outline" label="Sesli komut" hint={voiceOk ? 'Hazır · Türkçe' : 'Bu derlemede yok — development build gerekir'}>
             <Ionicons name={voiceOk ? 'checkmark-circle' : 'information-circle'} size={24} color={voiceOk ? colors.mint : colors.amber} />
           </Row>
+          <Divider />
+          <Txt weight="semibold" style={{ marginBottom: 10 }}>
+            Asistan sesi
+          </Txt>
+          <VoicePicker />
           <Divider />
           <Row icon="chatbubble-ellipses-outline" label="Yanıtları sesli oku">
             <Switch value={settings.voiceReply} onValueChange={(voiceReply) => updateSettings({ voiceReply })} trackColor={{ true: colors.violet, false: colors.surfaceStrong }} thumbColor="#fff" />
